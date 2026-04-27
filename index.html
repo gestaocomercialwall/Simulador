@@ -87,6 +87,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);font
 .fc.hl{border-color:var(--teal-m);background:var(--bg2)}
 .fc-lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dimmed);margin-bottom:7px}
 .fc-inp{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace;text-align:center;background:var(--bg);color:var(--ink);outline:none}
+.num-fmt{text-align:right!important}
 .fc-inp:focus{border-color:var(--teal)}
 .fc-unit{font-size:10px;color:var(--dimmed);text-align:center;margin-top:4px;font-family:'DM Mono',monospace}
 .sec-title{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 10px;padding-bottom:5px;border-bottom:2px solid var(--teal)}
@@ -848,6 +849,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);font
 .fc.hl{border-color:var(--teal-m);background:var(--bg2)}
 .fc-lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dimmed);margin-bottom:7px}
 .fc-inp{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace;text-align:center;background:var(--bg);color:var(--ink);outline:none}
+.num-fmt{text-align:right!important}
 .fc-inp:focus{border-color:var(--teal)}
 .fc-unit{font-size:10px;color:var(--dimmed);text-align:center;margin-top:4px;font-family:'DM Mono',monospace}
 .sec-title{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 10px;padding-bottom:5px;border-bottom:2px solid var(--teal)}
@@ -1554,6 +1556,7 @@ async function verificarCNPJ(){
       // Update empresa subtitle
       var sub=document.getElementById('dados-empresa-sub');
       if(sub) sub.textContent=(empresa.fantasia||empresa.nome)+' · '+empresa.municipio+'/'+empresa.uf;
+      initNumInputs();
     },800);
   }catch(e){
     showStat('error','❌ Não foi possível verificar este CNPJ. Verifique o número informado ou tente novamente em instantes.');
@@ -1702,11 +1705,11 @@ function refreshTable(){
 function calc(){
   var T=getT();
   var sj=parseInt(document.getElementById('inp-sj').value)||6;
-  var fat=parseFloat(document.getElementById('inp-fat').value)||0;
-  var pct=(parseFloat(document.getElementById('inp-pct').value)||0)/100;
-  var pctJ=(parseFloat(document.getElementById('inp-pct-j').value)||0)/100;
+  var fat=parseBR(document.getElementById('inp-fat').value)||0;
+  var pct=(parseBR(document.getElementById('inp-pct').value)||0)/100;
+  var pctJ=(parseBR(document.getElementById('inp-pct-j').value)||0)/100;
   var prazoMed=parseInt(document.getElementById('inp-prazo-med').value)||10;
-  var aliq=(parseFloat(document.getElementById('inp-aliq').value)||0)/100;
+  var aliq=(parseBR(document.getElementById('inp-aliq').value)||0)/100;
   var desc=T.desconto_wall/100;
   var vol=fat*pct;
   var volJ=vol*pctJ;
@@ -2139,6 +2142,124 @@ function gerarProposta(){
 }
 
 
+
+// ── NUMERIC INPUT FORMATTING ──
+function parseBR(s){
+  // Parse Brazilian formatted number back to float
+  if(!s) return NaN;
+  return parseFloat(s.replace(/\./g,'').replace(',','.'));
+}
+function formatBR(v, decimals){
+  if(isNaN(v)) return '';
+  return v.toLocaleString('pt-BR',{minimumFractionDigits:decimals||0,maximumFractionDigits:decimals||0});
+}
+function setupNumInput(id, decimals, max){
+  var el=document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('input',function(){
+    var raw=this.value.replace(/[^0-9,]/g,'');
+    // Allow typing freely, format on blur
+  });
+  el.addEventListener('blur',function(){
+    var v=parseBR(this.value.replace(/[^0-9,]/g,''));
+    if(!isNaN(v)){
+      if(max && v>max) v=max;
+      this.value=formatBR(v,decimals);
+    }
+  });
+  el.addEventListener('focus',function(){
+    // Show raw number on focus for easy editing
+    var v=parseBR(this.value);
+    if(!isNaN(v)) this.value=formatBR(v,decimals);
+  });
+}
+
+function initNumInputs(){
+  setupNumInput('inp-fat',0);
+  setupNumInput('inp-pct',1,100);
+  setupNumInput('inp-pct-j',1,100);
+  setupNumInput('inp-aliq',2,40);
+  setupNumInput('inp-desc-pix',2,20);
+  setupNumInput('inp-rebate-min',2,10);
+}
+
+// ── STEP FLOW ──
+var temTaxas = true;
+
+function setTemTaxas(val){
+  temTaxas = val;
+  var btnSim=document.getElementById('btn-tem-taxas');
+  var btnNao=document.getElementById('btn-sem-taxas');
+  var grid=document.getElementById('taxas-grid');
+  var msg=document.getElementById('sem-taxas-msg');
+  if(val){
+    btnSim.className=btnSim.className.replace(' active','')+'  active'.trimEnd()+' active';
+    btnSim.style.background='var(--teal)';btnSim.style.color='#fff';
+    btnNao.style.background='';btnNao.style.color='';
+    grid.style.display='block';msg.style.display='none';
+  }else{
+    btnNao.style.background='var(--teal)';btnNao.style.color='#fff';
+    btnSim.style.background='';btnSim.style.color='';
+    grid.style.display='none';msg.style.display='block';
+  }
+}
+
+function voltarDados(){
+  document.getElementById('cobar').style.display='block';
+  if(isSpec) document.getElementById('sppanel').style.display='block';
+  showScreen('dados');
+}
+
+function irParaSimulacao(){
+  // Validate required fields
+  var fat = parseBR(document.getElementById('inp-fat').value);
+  var pct = parseBR(document.getElementById('inp-pct').value);
+  var aliq = parseBR(document.getElementById('inp-aliq').value);
+  var sj = document.getElementById('inp-sj').value;
+  
+  if(isNaN(fat)||fat<=0||isNaN(pct)||pct<=0||isNaN(aliq)||aliq<=0||!sj){
+    showStat('error','Por favor preencha: Faturamento, % Parcelado, Alíquota e Prazo sem juros.');
+    document.getElementById('vstat').style.display='block';
+    window.scrollTo(0,400);
+    return;
+  }
+  document.getElementById('vstat').style.display='none';
+
+  // Check rebate minimum
+  var rebMin = parseFloat(document.getElementById('inp-rebate-min').value)||0;
+  
+  // Update calc inputs
+  refreshTable();
+  calc();
+  
+  // Check rebate alert
+  if(rebMin > 0){
+    // Get average rebate across prazos com juros
+    var sj_val = parseInt(sj)||6;
+    var rebates = [];
+    for(var p=sj_val+1;p<=18;p++){
+      var rb = DTRF.rebates[p]||0;
+      rebates.push(rb);
+    }
+    var avgReb = rebates.length ? rebates.reduce(function(a,b){return a+b;},0)/rebates.length : 0;
+    document.getElementById('rebate-alerta').style.display = avgReb < rebMin ? 'block' : 'none';
+  }
+
+  // Save simulation data with new fields
+  simD.desc_pix    = parseFloat(document.getElementById('inp-desc-pix').value)||0;
+  simD.segmento    = document.getElementById('inp-segmento').value;
+  simD.tipo_mdr    = document.getElementById('inp-tipo-mdr').value;
+  simD.parcelar_j  = document.getElementById('inp-parcelar-juros').value;
+  simD.preco_base  = document.getElementById('inp-preco-base').value;
+  simD.tipo_prem   = document.getElementById('inp-tipo-prem').value;
+  simD.rebate_min  = document.getElementById('inp-rebate-min').value;
+  simD.tem_taxas   = temTaxas;
+
+  showScreen('sim');
+  document.getElementById('cobar').style.display='block';
+  if(isSpec) document.getElementById('sppanel').style.display='block';
+  window.scrollTo(0,0);
+}
 
 // ── HELPERS ──
 function nomeGrupo(razaoSocial, nomeFantasia, nomeCustom){
