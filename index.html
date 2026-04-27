@@ -469,58 +469,175 @@ td.has-label{vertical-align:top;padding-top:3px!important}
   <p class="sp-note">⚠ Condições editadas serão marcadas como "Condições Negociadas" na proposta.</p>
 </div></div>
 
-<!-- ══ SIMULATOR ══ -->
-<div class="screen" id="screen-sim">
+<!-- ══ STEP 1: DADOS GERAIS ══ -->
+<div class="screen" id="screen-dados">
  <div class="sim-w">
   <div class="sim-hero">
-    <div class="slbl2">Simulador WallClub</div>
-    <h1>Calcule o ganho real<br><em>da sua loja.</em></h1>
-    <p>Informe as taxas atuais e veja o impacto da WallClub na sua margem — prazo a prazo.</p>
+    <div class="slbl2">Passo 1 de 2</div>
+    <h1>Dados da <em>simulação</em></h1>
+    <p id="dados-empresa-sub" style="font-size:13px;color:var(--teal);font-weight:600;margin-bottom:4px"></p>
+    <p style="font-size:13px;color:var(--muted)">Preencha os dados abaixo para configurar a simulação.</p>
   </div>
 
-  <div class="mode-sel">
-    <button class="mbtn active" id="mbtn-a" onclick="setMode('a')">📋 Taxa única por prazo</button>
-    <button class="mbtn" id="mbtn-b" onclick="setMode('b')">🔢 MDR por faixa + antecipação</button>
-  </div>
-
+  <!-- Dados Financeiros -->
+  <div class="sec-title">Dados Financeiros</div>
   <div class="top-inp">
     <div class="ig" style="margin:0"><label>Faturamento mensal (R$)</label>
-      <input type="number" id="inp-fat" value="1000000" min="0" step="50000" oninput="calc()"></div>
+      <input type="number" id="inp-fat" value="" min="0" step="50000" placeholder="Ex: 1000000"></div>
     <div class="ig" style="margin:0"><label>% vendas parceladas (total)</label>
-      <input type="number" id="inp-pct" value="65" min="0" max="100" step="5" oninput="calc()"></div>
-    <div class="ig" style="margin:0"><label>Alíquota de tributos (%)</label>
-      <input type="number" id="inp-aliq" value="10" min="0" max="40" step="0.5" oninput="calc()"></div>
-    <div class="ig" style="margin:0"><label>% das parceladas em prazos c/ encargos (7x+)</label>
-      <input type="number" id="inp-pct-j" value="50" min="0" max="100" step="5" oninput="calc()"></div>
+      <input type="number" id="inp-pct" value="" min="0" max="100" step="5" placeholder="Ex: 65"></div>
+    <div class="ig" style="margin:0"><label>% parceladas com encargos (7x+)</label>
+      <input type="number" id="inp-pct-j" value="" min="0" max="100" step="5" placeholder="Ex: 50"></div>
     <div class="ig" style="margin:0"><label>Prazo médio c/ encargos</label>
-      <select id="inp-prazo-med" onchange="calc()">
+      <select id="inp-prazo-med">
+        <option value="">-- selecione --</option>
         <option value="7">7x</option><option value="8">8x</option><option value="9">9x</option>
-        <option value="10" selected>10x</option><option value="11">11x</option><option value="12">12x</option>
+        <option value="10">10x</option><option value="11">11x</option><option value="12">12x</option>
         <option value="15">15x</option><option value="18">18x</option>
       </select></div>
+    <div class="ig" style="margin:0"><label>Alíquota de tributos (%)</label>
+      <input type="number" id="inp-aliq" value="" min="0" max="40" step="0.5" placeholder="Ex: 10"></div>
+    <div class="ig" style="margin:0"><label>% Desconto loja para PIX próprio</label>
+      <input type="number" id="inp-desc-pix" value="" min="0" max="20" step="0.5" placeholder="Ex: 5"></div>
+  </div>
+
+  <!-- Condições de Parcelamento -->
+  <div class="sec-title">Condições de Parcelamento</div>
+  <div class="top-inp">
     <div class="ig" style="margin:0"><label>Prazo sem juros ao cliente (até)</label>
-      <select id="inp-sj" onchange="refreshTable()">
+      <select id="inp-sj">
+        <option value="">-- selecione --</option>
         <option value="1">1x</option><option value="2">2x</option><option value="3">3x</option>
-        <option value="4">4x</option><option value="5">5x</option><option value="6" selected>6x</option>
+        <option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>
         <option value="7">7x</option><option value="8">8x</option>
+      </select></div>
+    <div class="ig" style="margin:0"><label>Prazo máx. parcelamento atual</label>
+      <select id="inp-prazo-max">
+        <option value="12">12x</option><option value="18" selected>18x</option>
+        <option value="21">21x</option><option value="24">24x</option>
+      </select></div>
+    <div class="ig" style="margin:0"><label>Parcelar com juros ao cliente?</label>
+      <select id="inp-parcelar-juros">
+        <option value="">-- selecione --</option>
+        <option value="1">Sim</option><option value="2">Não</option>
+      </select></div>
+    <div class="ig" style="margin:0"><label>Preço base parcelado c/ juros</label>
+      <select id="inp-preco-base">
+        <option value="">-- selecione --</option>
+        <option value="1">Club (c/ desc. / cashback)</option>
+        <option value="2">Original (sem desconto)</option>
       </select></div>
   </div>
 
-  <!-- MODE B FAIXA INPUTS -->
-  <div id="faixa-sec" style="display:none">
-    <div class="faixa-grid">
-      <div class="fc"><div class="fc-lbl">MDR Pix</div><input class="fc-inp" id="f-pix" type="number" step="0.01" value="0.70" oninput="refreshTable()"><div class="fc-unit">%</div></div>
-      <div class="fc"><div class="fc-lbl">MDR Débito</div><input class="fc-inp" id="f-deb" type="number" step="0.01" value="1.00" oninput="refreshTable()"><div class="fc-unit">%</div></div>
-      <div class="fc"><div class="fc-lbl">MDR 1x</div><input class="fc-inp" id="f-1x" type="number" step="0.01" value="2.61" oninput="refreshTable()"><div class="fc-unit">%</div></div>
-      <div class="fc"><div class="fc-lbl">MDR 2x – 6x</div><input class="fc-inp" id="f-26" type="number" step="0.01" value="1.49" oninput="refreshTable()"><div class="fc-unit">%</div></div>
-      <div class="fc"><div class="fc-lbl">MDR 7x – 12x</div><input class="fc-inp" id="f-712" type="number" step="0.01" value="2.49" oninput="refreshTable()"><div class="fc-unit">%</div></div>
-      <div class="fc"><div class="fc-lbl">MDR 13x – 17x</div><input class="fc-inp" id="f-1317" type="number" step="0.01" value="2.99" oninput="refreshTable()"><div class="fc-unit">%</div></div>
-      <div class="fc"><div class="fc-lbl">MDR 18x – 21x</div><input class="fc-inp" id="f-1821" type="number" step="0.01" value="3.49" oninput="refreshTable()"><div class="fc-unit">%</div></div>
-      <div class="fc hl"><div class="fc-lbl">Antecipação (% a.m.)</div><input class="fc-inp" id="f-ant" type="number" step="0.01" value="1.89" oninput="refreshTable()"><div class="fc-unit">× (N+1)/2 por prazo</div></div>
+  <!-- Perfil Comercial -->
+  <div class="sec-title">Perfil Comercial</div>
+  <div class="top-inp">
+    <div class="ig" style="margin:0"><label>Segmentação</label>
+      <select id="inp-segmento">
+        <option value="">-- selecione --</option>
+        <option value="1">1 — Normal</option>
+        <option value="2">2 — Alta</option>
+        <option value="3">3 — Média</option>
+      </select></div>
+    <div class="ig" style="margin:0"><label>Tipo de negociação MDR</label>
+      <select id="inp-tipo-mdr">
+        <option value="">-- selecione --</option>
+        <option value="1">1 — Média Platinizada</option>
+        <option value="2">2 — Por Bandeira</option>
+      </select></div>
+    <div class="ig" style="margin:0"><label>Tipo de premiação ao cliente</label>
+      <select id="inp-tipo-prem">
+        <option value="">-- selecione --</option>
+        <option value="1">1 — Desconto</option>
+        <option value="2">2 — Cashback</option>
+        <option value="3">3 — Ambos</option>
+      </select></div>
+    <div class="ig" style="margin:0"><label>Rebate mínimo desejado (%)</label>
+      <input type="number" id="inp-rebate-min" value="" min="0" max="10" step="0.1" placeholder="Ex: 0.5"></div>
+  </div>
+
+  <!-- Taxas do Cliente -->
+  <div class="sec-title">Taxas Atuais do Cliente</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px">
+    <div class="ig" style="margin:0 0 14px 0">
+      <label>A loja forneceu as taxas?</label>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button class="mbtn active" id="btn-tem-taxas" onclick="setTemTaxas(true)" style="flex:none;padding:8px 20px">✓ Sim, tenho as taxas</button>
+        <button class="mbtn" id="btn-sem-taxas" onclick="setTemTaxas(false)" style="flex:none;padding:8px 20px">Não tenho ainda</button>
+      </div>
+    </div>
+    <p id="sem-taxas-msg" style="display:none;font-size:13px;color:var(--muted);font-style:italic">Tudo bem! Você pode simular sem as taxas e preencher depois. A coluna "Redução" ficará em branco.</p>
+  </div>
+
+  <!-- Taxa input grid (shown only if tem taxas) -->
+  <div id="taxas-grid" style="display:none">
+    <div class="mode-sel">
+      <button class="mbtn active" id="mbtn-a" onclick="setMode('a')">📋 Taxa única por prazo</button>
+      <button class="mbtn" id="mbtn-b" onclick="setMode('b')">🔢 MDR por faixa + antecipação</button>
+    </div>
+    <!-- Mode A: prazo a prazo -->
+    <div id="taxas-por-prazo" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Digite as taxas exatamente como aparecem na tabela da credenciadora:</p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div class="fc"><div class="fc-lbl">Pix</div><input class="fc-inp" id="tipix" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">Débito</div><input class="fc-inp" id="tidebito" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">1x</div><input class="fc-inp" id="ti1x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">2x</div><input class="fc-inp" id="ti2x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">3x</div><input class="fc-inp" id="ti3x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">4x</div><input class="fc-inp" id="ti4x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">5x</div><input class="fc-inp" id="ti5x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">6x</div><input class="fc-inp" id="ti6x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">7x</div><input class="fc-inp" id="ti7x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">8x</div><input class="fc-inp" id="ti8x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">9x</div><input class="fc-inp" id="ti9x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">10x</div><input class="fc-inp" id="ti10x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">11x</div><input class="fc-inp" id="ti11x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">12x</div><input class="fc-inp" id="ti12x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">13x</div><input class="fc-inp" id="ti13x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">14x</div><input class="fc-inp" id="ti14x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">15x</div><input class="fc-inp" id="ti15x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">16x</div><input class="fc-inp" id="ti16x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">17x</div><input class="fc-inp" id="ti17x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">18x</div><input class="fc-inp" id="ti18x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+      </div>
+    </div>
+    <!-- Mode B: faixas -->
+    <div id="faixa-sec" style="display:none">
+      <div class="faixa-grid">
+        <div class="fc"><div class="fc-lbl">MDR Pix</div><input class="fc-inp" id="f-pix" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">MDR Débito</div><input class="fc-inp" id="f-deb" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">MDR 1x</div><input class="fc-inp" id="f-1x" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">MDR 2x–6x</div><input class="fc-inp" id="f-26" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">MDR 7x–12x</div><input class="fc-inp" id="f-712" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">MDR 13x–17x</div><input class="fc-inp" id="f-1317" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc"><div class="fc-lbl">MDR 18x–21x</div><input class="fc-inp" id="f-1821" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">%</div></div>
+        <div class="fc hl"><div class="fc-lbl">Antecipação (% a.m.)</div><input class="fc-inp" id="f-ant" type="number" step="0.01" placeholder="0.00"><div class="fc-unit">× (N+1)/2</div></div>
+      </div>
     </div>
   </div>
 
-  <!-- COMPARISON TABLE -->
+  <div id="rebate-alerta" style="display:none;background:#fdf5e6;border:1px solid var(--gold);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--gold)">
+    ⚠ O rebate estimado está abaixo do mínimo desejado. Revise as condições ou ajuste o rebate mínimo.
+  </div>
+
+  <button class="btn-gen" onclick="irParaSimulacao()" style="margin-top:8px">
+    <span>▶</span> Simular →
+  </button>
+ </div>
+</div>
+
+<!-- ══ SIMULATOR RESULT ══ -->
+<div class="screen" id="screen-sim">
+ <div class="sim-w">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div class="slbl2">Resultado da Simulação</div>
+      <h1 style="font-size:24px;font-weight:900;color:var(--ink)">Comparativo <em>WallClub</em></h1>
+    </div>
+    <button class="mbtn" onclick="voltarDados()" style="flex:none;padding:8px 16px;font-size:13px">← Ajustar dados</button>
+  </div>
+
+<!-- COMPARISON TABLE -->
   <div class="sec-title">Comparativo de Taxas — Loja vs. WallClub</div>
   <div class="ct-wrap">
     <table class="ct">
@@ -618,6 +735,7 @@ td.has-label{vertical-align:top;padding-top:3px!important}
     </div>
     <button class="btn-gen" onclick="gerarProposta()"><span>✦</span> Gerar Proposta Completa</button>
   </div>
+ 
  </div>
 </div>
 
@@ -1324,6 +1442,13 @@ function voltarSim(){
   if(isSpec)document.getElementById('sppanel').style.display='block';
   window.scrollTo(0,0);
 }
+function voltarSim_old(){
+  document.getElementById('propview').style.display='none';
+  var s=document.getElementById('screen-sim');s.style.display='block';s.classList.add('active');
+  document.getElementById('cobar').style.display='block';
+  if(isSpec)document.getElementById('sppanel').style.display='block';
+  window.scrollTo(0,0);
+}
 
 // ── MASKS ──
 document.getElementById('inp-cnpj').addEventListener('input',function(){
@@ -1418,17 +1543,12 @@ async function verificarCNPJ(){
     document.getElementById('cocnpj').textContent=empresa.cnpj;
     document.getElementById('cocity').textContent=empresa.municipio+'/'+empresa.uf;
     setTimeout(function(){
-      showScreen('sim');
+      showScreen('dados');
       document.getElementById('cobar').style.display='block';
       if(isSpec){buildRGrid();document.getElementById('sppanel').style.display='block';}
-      refreshTable();
-      calc();
-      // Zero out current rates so vendor fills them in
-      PRAZOS.forEach(function(lbl){
-        var safe=lbl.replace(/[^a-z0-9]/gi,'').toLowerCase();
-        var el=document.getElementById('ti'+safe);
-        if(el) el.value='';
-      });
+      // Update empresa subtitle
+      var sub=document.getElementById('dados-empresa-sub');
+      if(sub) sub.textContent=(empresa.fantasia||empresa.nome)+' · '+empresa.municipio+'/'+empresa.uf;
     },800);
   }catch(e){
     showStat('error','❌ Não foi possível verificar este CNPJ. Verifique o número informado ou tente novamente em instantes.');
