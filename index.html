@@ -380,6 +380,11 @@ td.has-label{vertical-align:top;padding-top:3px!important}
 
   /* Signature block compact */
   .sig-g{margin-top:12px!important}
+.notif-crm{display:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;margin:8px 0;text-align:center}
+.notif-crm.ok{background:#e6f4f1;color:#027368;border:1px solid #027368}
+.notif-crm.error{background:#fdecea;color:#c0392b;border:1px solid #c0392b}
+.btn-pipeline{background:#2c3e50;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:10px;transition:all .2s}
+.btn-pipeline:hover{background:#027368}
   .sig-b{padding-top:6px!important}
 }
 @media(max-width:700px){
@@ -741,7 +746,12 @@ td.has-label{vertical-align:top;padding-top:3px!important}
       <div class="ig"><label>Endereço de entrega do POS (1ª unidade)</label><input type="text" id="gen-end" placeholder="Rua, nº, cidade/UF"></div>
       <div class="ig"><label>Nome curto do grupo <span style="color:var(--dimmed);font-weight:400;text-transform:none">(opcional — ex: D'Santos Colchões)</span></label><input type="text" id="gen-grupo" placeholder="Deixe em branco para usar os 2 primeiros nomes da razão social"></div>
     </div>
-    <button class="btn-gen" onclick="gerarProposta()"><span>✦</span> Gerar Proposta Completa</button>
+    <div id="notif-crm"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+    <button class="btn-pipeline" id="btn-pipeline" onclick="salvarNoPipeline()">Salvar no Pipeline</button>
+    <span style="font-size:12px;color:var(--muted)">Registra esta simulacao no CRM WallClub</span>
+  </div>
+  <button class="btn-gen" onclick="gerarProposta()"><span>✦</span> Gerar Proposta Completa</button>
   </div>
  
  </div>
@@ -1142,6 +1152,11 @@ td.has-label{vertical-align:top;padding-top:3px!important}
 
   /* Signature block compact */
   .sig-g{margin-top:12px!important}
+.notif-crm{display:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;margin:8px 0;text-align:center}
+.notif-crm.ok{background:#e6f4f1;color:#027368;border:1px solid #027368}
+.notif-crm.error{background:#fdecea;color:#c0392b;border:1px solid #c0392b}
+.btn-pipeline{background:#2c3e50;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:10px;transition:all .2s}
+.btn-pipeline:hover{background:#027368}
   .sig-b{padding-top:6px!important}
 }
 @media(max-width:700px){
@@ -1379,10 +1394,13 @@ async function verificarCNPJ(){
       municipio:data.municipio,uf:data.uf
     };
     pdfName=(empresa.fantasia||empresa.nome).replace(/[^a-zA-Z0-9\s]/g,'').replace(/\s+/g,'_').slice(0,40);
-    showStat('ok','✓ Empresa verificada: '+empresa.nome);
+    showStat('ok','\u2713 Empresa verificada: '+empresa.nome);
     document.getElementById('coname').textContent=empresa.fantasia||empresa.nome;
     document.getElementById('cocnpj').textContent=empresa.cnpj;
     document.getElementById('cocity').textContent=empresa.municipio+'/'+empresa.uf;
+    verificarCNPJnoCRM(empresa.cnpj).then(function(r){
+      if(r&&!r.pode) showStat('error','\u274c CNPJ ja pertence a outro consultor: '+r.motivo);
+    }).catch(function(){});
     setTimeout(function(){
       showScreen('dados');
       document.getElementById('cobar').style.display='block';
@@ -2100,6 +2118,9 @@ function irParaSimulacao(){
   document.getElementById('cobar').style.display='block';
   if(isSpec) document.getElementById('sppanel').style.display='block';
   window.scrollTo(0,0);
+  var btnP=document.getElementById('btn-pipeline');
+  if(btnP){btnP.disabled=false;btnP.textContent='Salvar no Pipeline';btnP.style.background='';btnP.style.color='';}
+  salvarRascunhoCRM();
 }
 
 // ── HELPERS ──
@@ -2195,10 +2216,82 @@ async function fazerLogin(){
 }
 
 // Save simulation to Google Sheets
-async function salvarSimulacao(dados){
-  // Uses Google Forms or Apps Script webhook
-  // For now: log to console (will wire up after deploy)
-  console.log('Simulação:', dados);
+async // ── CRM INTEGRATION ──
+var APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzlii1TdRCNQGBv9ZGtB20iUCWF2PxJ55Vs0AcAVMe7edLRPORIV5T_-TrsMg3bCBKY/exec';
+var _idRascunhoAtual=null;
+
+async function chamarCRM(acao,dados){
+  try{
+    var r=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',mode:'no-cors',
+      body:JSON.stringify(Object.assign({acao:acao},dados)),
+      headers:{'Content-Type':'application/json'}
+    });
+    try{ return await r.json(); }catch(e){ return {ok:true}; }
+  }catch(e){ console.warn('CRM:',e.message); return {ok:false,erro:e.message}; }
+}
+
+async function salvarRascunhoCRM(){
+  if(!empresa||!consul) return;
+  var d=coletarDadosSimulacao();
+  d.token_vendedor=consul.token;
+  d.cnpj=empresa.cnpj; d.razao_social=empresa.nome;
+  d.municipio=empresa.municipio; d.uf=empresa.uf;
+  chamarCRM('salvar_rascunho',d).then(function(r){
+    if(r&&r.id) _idRascunhoAtual=r.id;
+  });
+}
+
+async function verificarCNPJnoCRM(cnpj){
+  if(!consul) return {pode:true};
+  return await chamarCRM('verificar_cnpj',{cnpj:cnpj,token_vendedor:consul.token});
+}
+
+async function salvarNoPipeline(){
+  if(!empresa||!consul){ mostrarNotif('error','Sessao invalida.'); return; }
+  var btn=document.getElementById('btn-pipeline');
+  if(btn){btn.disabled=true;btn.textContent='Salvando...';}
+  var d=coletarDadosSimulacao();
+  d.token_vendedor=consul.token; d.id_rascunho=_idRascunhoAtual;
+  d.cnpj=empresa.cnpj; d.razao_social=empresa.nome;
+  d.fantasia=empresa.fantasia||''; d.municipio=empresa.municipio; d.uf=empresa.uf;
+  var r=await chamarCRM('registrar_pipeline',d);
+  if(r&&r.ok){
+    mostrarNotif('ok','\u2713 Salvo no pipeline!');
+    if(btn){btn.textContent='\u2713 No Pipeline';btn.style.background='#027368';btn.style.color='#fff';}
+  }else{
+    mostrarNotif('error','\u274c '+(r&&r.erro?r.erro:'Erro ao salvar'));
+    if(btn){btn.disabled=false;btn.textContent='Salvar no Pipeline';}
+  }
+}
+
+function coletarDadosSimulacao(){
+  return {
+    faturamento:parseBR(document.getElementById('inp-fat').value)||0,
+    pct_parcelado:parseBR(document.getElementById('inp-pct').value)||0,
+    pct_encargos:parseBR(document.getElementById('inp-pct-j').value)||0,
+    prazo_med:document.getElementById('inp-prazo-med').value||'',
+    aliquota:parseBR(document.getElementById('inp-aliq').value)||0,
+    prazo_sj:document.getElementById('inp-sj').value||'',
+    segmento:document.getElementById('inp-segmento').value||'',
+    tipo_mdr:document.getElementById('inp-tipo-mdr').value||'',
+    parcelar_juros:document.getElementById('inp-parcelar-juros').value||'',
+    preco_base:document.getElementById('inp-preco-base').value||'',
+    tipo_premiacao:document.getElementById('inp-tipo-prem').value||'',
+    rebate_min:parseBR(document.getElementById('inp-rebate-min').value)||0,
+    tem_taxas:temTaxas,
+    ganho_mes:simD?simD.ganho_mes||0:0,
+    ganho_ano:simD?simD.ganho_ano||0:0
+  };
+}
+
+function mostrarNotif(tipo,msg){
+  var el=document.getElementById('notif-crm');
+  if(!el)return;
+  el.textContent=msg;
+  el.className='notif-crm '+tipo;
+  el.style.display='block';
+  setTimeout(function(){el.style.display='none';},5000);
 }
 
 // ── AUTO INIT (runs after all functions defined) ──
